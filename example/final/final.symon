@@ -32,7 +32,7 @@ expr ignore_irrelevant {
 }
 expr correct {
     create(name, tag | name == current_name && tag == current_tag);
-    within (<400) {
+    within (<600) {
         (ignore_irrelevant || create(name, tag | name == current_name && tag == current_tag))*;
         fetch(name, tag | name == current_name && tag == current_tag)
     };
@@ -40,7 +40,7 @@ expr correct {
 }
 expr failed {
     create(name, tag | name == current_name && tag == current_tag);
-    within (>400) {
+    within (>600) {
         (ignore_irrelevant || create(name, tag | name == current_name && tag == current_tag))*;
         one_of {
             create(name, tag)

@@ -63,7 +63,7 @@ mappings = [
 ]
 ```
 
-```
+```txt
 U 1746447443.495
 N 1746447444.1
 U 1746447444.108
@@ -86,34 +86,151 @@ U 1746447504.755
 1. Image をレジストリに push
 1. 最新の Image が変わったことを検知
 
----
-
-## 順序つき
-
-1. item1
-2. item2
-3. item3
-4. item4
-5. item5
+1 と 2 の間が 5 分以内であることを保証したい
+= 1 と 2 の間が 5 分以内になっていない場合に検出したい
 
 ---
 
-## 下に画像
+### やりたいこと - 例
 
-- item1
+```go
+// 1のログ
+{
+  "time":"2025-07-02T02:50:46.42462649Z",
+  "package_name":"auth-frontend",
+  "package_tag":"stg-9c8f5e28c2c7d78da2648f5eaa62216038cbd1fd-1458"
+  ....
+}
+```
 
-![w:700](./images/song-list.png)
+```go
+// 2のログ
+{
+"level":"info",
+"ts":"2025-07-03T07:06:59.990Z",
+"msg":"Latest image tag for
+        ghcr.io/piny940/auth-frontend resolved to
+        stg-9c8f5e28c2c7d78da2648f5eaa62216038cbd1fd-1458 ...",
+...
+}
+```
 
 ---
 
-## 横に画像
+## monaa だと難しい理由
 
-<!--_class: side -->
+- package 名・タグ名ごとに時間制約を確認したい
 
-- item1
-- item2
-- item3
-- item4
-- item5
+```
+create auth:1.0.1
+fetch auth:1.0.1
+create auth:1.0.2
+fetch auth:1.0.2
+```
 
-![w:700px](./images/song-list.png)
+package 名・タグ名を変数に格納する必要がある
+
+monaa は
+
+- 変数を保持できない
+- char 型以外のログを扱えない
+
+---
+
+## SyMon
+
+- 変数が保持できる
+
+```
+var {
+    # We define a string parameter to represent the current ID.
+    current_name: string;
+    current_tag: string;
+}
+```
+
+- 変数の値と一致するログだけマッチさせられる
+
+```
+fetch(name, tag | name == current_name && tag == current_tag)
+```
+
+---
+
+## 前処理
+
+- create: 作成、fetch: 検出
+- package 名、タグ名のみ抽出
+- timestamp を UNIX 時間の MOD に処理
+
+```
+create auth-backend stg-7c03f5241c93d6e77bb132d8ea9ffe9e59e7b62d-1445 171982
+fetch auth-example stg-379cca639565f93fe2485c6f443b1d5b45285534-1441 172084
+fetch auth-example stg-379cca639565f93fe2485c6f443b1d5b45285534-1441 172085
+create auth-frontend stg-7c03f5241c93d6e77bb132d8ea9ffe9e59e7b62d-1445 172140
+fetch auth-frontend stg-7c03f5241c93d6e77bb132d8ea9ffe9e59e7b62d-1445 172146
+```
+
+---
+
+## 実際に書いた SyMon ファイル（一部）
+
+```
+expr correct {
+    create(name, tag | name == current_name && tag == current_tag);
+    within (<400) {
+        (ignore_irrelevant
+          || create(name, tag | name == current_name && tag == current_tag))*;
+        fetch(name, tag | name == current_name && tag == current_tag)
+    };
+    (ignore_irrelevant
+      || fetch(name, tag | name == current_name && tag == current_tag))*
+}
+expr failed {
+    create(name, tag | name == current_name && tag == current_tag);
+    within (>300) {
+        (ignore_irrelevant
+          || create(name, tag | name == current_name && tag == current_tag))*;
+        one_of {
+            create(name, tag)
+        } or {
+            fetch(name, tag)
+        }
+    }
+}
+```
+
+---
+
+## 結果
+
+過去 1 週間のログを検証
+create 12 件のうち、
+
+- 「5 分以内」という条件だと、条件を満たさないログを 5 件検出
+
+```
+@305024.        (time-point 9443)       x0 == auth-example      x1 == stg-x-1458 true
+@305024.        (time-point 9443)       x0 == auth-frontend     x1 == stg-x-1458 true
+@305051.        (time-point 9444)       x0 == auth-example      x1 == stg-x-1458 true
+@305051.        (time-point 9444)       x0 == auth-frontend     x1 == stg-x-1458 true
+@305053.        (time-point 9445)       x0 == auth-example      x1 == stg-x-1458 true
+```
+
+- 「10 分以内」だとすべて条件を満たしていた
+
+---
+
+# まとめ
+
+---
+
+## まとめ
+
+- timed regular expression を用いてログが時間制約を満たすことを確認
+- 時間制約にマッチするログを検出できた
+
+今後は
+
+- 検証システムの汎用性向上
+- リアルタイム検出システムの構築
