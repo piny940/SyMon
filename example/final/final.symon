@@ -1,0 +1,56 @@
+#!/usr/local/bin/symon -dnf
+var {
+    # We define a string parameter to represent the current ID.
+    current_name: string;
+    current_tag: string;
+}
+signature create {
+    name: string;
+    tag: string;
+}
+signature fetch {
+    name: string;
+    tag: string;
+}
+expr ignore_any {
+    zero_or_more {
+        one_of {
+            create(name, tag)
+        } or {
+            fetch(name, tag)
+        }
+    }
+}
+expr ignore_irrelevant {
+    zero_or_more {
+        one_of {
+            create(name, tag | name != current_name || tag != current_tag)
+        } or {
+            fetch(name, tag | name != current_name || tag != current_tag)
+        }
+    }
+}
+expr correct {
+    create(name, tag | name == current_name && tag == current_tag);
+    within (<400) {
+        (ignore_irrelevant || create(name, tag | name == current_name && tag == current_tag))*;
+        fetch(name, tag | name == current_name && tag == current_tag)
+    };
+    (ignore_irrelevant || fetch(name, tag | name == current_name && tag == current_tag))*
+}
+expr failed {
+    create(name, tag | name == current_name && tag == current_tag);
+    within (>400) {
+        (ignore_irrelevant || create(name, tag | name == current_name && tag == current_tag))*;
+        one_of {
+            create(name, tag)
+        } or {
+            fetch(name, tag)
+        }
+    }
+}
+ignore_any;
+# Ignore the A and B signatures that do not match the current_id.
+ignore_irrelevant;
+correct*;
+failed
