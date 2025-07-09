@@ -18,11 +18,20 @@ paginate: true
 
 ## やりたいこと
 
+- Kubernetes: コンテナをいい感じに管理するソフトウェア
 - Kubernetes の設定はミスしやすい
   - いろんなプラグインの設定が関わり合って駆動する
+  - ネットワーク、カーネル、etc
+
+---
+
+## やりたいこと
+
 - しかもミスに気づきにくい
   - 複数 Controller が非決定的な順序で reconcile 処理を行う
 - クラスタが意図した動作をしているか検証する仕組みがほしい
+
+![w:400](./images/controllerの処理.svg)
 
 ---
 
@@ -170,6 +179,8 @@ fetch auth-example stg-379cca639565f93fe2485c6f443b1d5b45285534-1441 172085
 create auth-frontend stg-7c03f5241c93d6e77bb132d8ea9ffe9e59e7b62d-1445 172140
 fetch auth-frontend stg-7c03f5241c93d6e77bb132d8ea9ffe9e59e7b62d-1445 172146
 ```
+
+<img style="position:absolute; width:600px; top: 60px; right: 10px" src="./images/生logの画像.png" />
 
 ---
 
