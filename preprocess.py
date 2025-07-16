@@ -5,7 +5,8 @@ import re
 from typing import Any
 from dateutil.parser import parse
 
-PRETIME = 1751120000
+# PRETIME = 1751120000
+PRETIME = 1
 
 logs: list[str] = []
 
