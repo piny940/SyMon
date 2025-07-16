@@ -33,7 +33,13 @@ expr ignore_irrelevant {
 expr failed {
     create(name, tag | name == current_name && tag == current_tag);
     within (>300) {
-        (ignore_irrelevant || create(name, tag | name == current_name && tag == current_tag))*;
+        zero_or_more {
+            one_of {
+                ignore_irrelevant
+            } or {
+                create(name, tag | name == current_name && tag == current_tag)
+            }
+        };
         one_of {
             create(name, tag)
         } or {
