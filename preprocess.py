@@ -17,7 +17,7 @@ def parse_time(time_str: str) -> int:
   return math.floor((time.timestamp() - PRETIME))
 
 
-with open('./example/final/log/01_package-watcher.csv') as f:
+with open('./example/final/log/01_package-watcher_15days.csv') as f:
   reader = csv.DictReader(f)
   for row in reader:
     log: dict[str, Any] = json.loads(row['log'])
@@ -27,7 +27,7 @@ with open('./example/final/log/01_package-watcher.csv') as f:
 
 found = set()
 
-with open('./example/final/log/02_image-reflector.csv') as f:
+with open('./example/final/log/02_image-reflector_15days.csv') as f:
   reader = csv.DictReader(f)
   for row in reversed(list(reader)):
     log: dict[str, Any] = json.loads(row['log'])
@@ -58,5 +58,5 @@ with open('./example/final/log/02_image-reflector.csv') as f:
 
 logs.sort(key=lambda x: float(x.split()[-1]))
 
-with open('example/final/out.txt', 'w') as f:
+with open('example/final/out_15days.txt', 'w') as f:
   f.writelines(logs)
